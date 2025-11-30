@@ -1,0 +1,1 @@
+fn dummy_tool() { return "ok"; }

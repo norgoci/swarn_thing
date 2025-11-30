@@ -1,0 +1,580 @@
+   Compiling rust-research-agent v0.1.0 (/home/mi5/imaginarium/laboratorium/playground/python/samples/02-samples/14-research-agent/rust-research-agent)
+warning: unused import: `ConversationRole`
+ --> src/llm.rs:4:51
+  |
+4 | use aws_sdk_bedrockruntime::types::{ContentBlock, ConversationRole, Message, SystemContentBlock};
+  |                                                   ^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `serde_json::Value`
+ --> src/llm.rs:5:5
+  |
+5 | use serde_json::Value;
+  |     ^^^^^^^^^^^^^^^^^
+
+error[E0308]: mismatched types
+  --> src/llm.rs:37:20
+   |
+37 |             if let Some(message) = output_message.as_message() {
+   |                    ^^^^^^^^^^^^^   --------------------------- this expression has type `Result<&Message, &ConverseOutput>`
+   |                    |
+   |                    expected `Result<&Message, &ConverseOutput>`, found `Option<_>`
+   |
+   = note: expected enum `Result<&aws_sdk_bedrockruntime::types::Message, &aws_sdk_bedrockruntime::types::ConverseOutput>`
+              found enum `Option<_>`
+   = note: the full name for the type has been written to '/home/mi5/imaginarium/laboratorium/playground/python/samples/02-samples/14-research-agent/rust-research-agent/target/debug/deps/rust_research_agent-8026b4b0f3d3c1da.long-type-165903106772221818.txt'
+   = note: consider using `--verbose` to print the full type name to the console
+
+error[E0308]: mismatched types
+  --> src/agent.rs:27:27
+   |
+27 |         self.history.push(user_msg);
+   |                      ---- ^^^^^^^^ expected `Message`, found `Result<Message, BuildError>`
+   |                      |
+   |                      arguments to this method are incorrect
+   |
+   = note: expected struct `aws_sdk_bedrockruntime::types::Message`
+                found enum `Result<aws_sdk_bedrockruntime::types::Message, aws_sdk_bedrockruntime::error::BuildError>`
+note: method defined here
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/vec/mod.rs:2571:12
+help: use the `?` operator to extract the `Result<aws_sdk_bedrockruntime::types::Message, aws_sdk_bedrockruntime::error::BuildError>` value, propagating a `Result::Err` value to the caller
+   |
+27 |         self.history.push(user_msg?);
+   |                                   +
+
+error[E0308]: mismatched types
+  --> src/agent.rs:38:27
+   |
+38 |         self.history.push(assistant_msg);
+   |                      ---- ^^^^^^^^^^^^^ expected `Message`, found `Result<Message, BuildError>`
+   |                      |
+   |                      arguments to this method are incorrect
+   |
+   = note: expected struct `aws_sdk_bedrockruntime::types::Message`
+                found enum `Result<aws_sdk_bedrockruntime::types::Message, aws_sdk_bedrockruntime::error::BuildError>`
+note: method defined here
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/vec/mod.rs:2571:12
+help: use the `?` operator to extract the `Result<aws_sdk_bedrockruntime::types::Message, aws_sdk_bedrockruntime::error::BuildError>` value, propagating a `Result::Err` value to the caller
+   |
+38 |         self.history.push(assistant_msg?);
+   |                                        +
+
+error[E0277]: `?` couldn't convert the error: `(dyn std::error::Error + 'static): Send` is not satisfied
+  --> src/tools.rs:67:78
+   |
+67 |         let result: String = self.engine.eval_ast_with_scope(&mut scope, ast)?;
+   |                                          ------------------------------------^ `(dyn std::error::Error + 'static)` cannot be sent between threads safely
+   |                                          |
+   |                                          this can't be annotated with `?` because it has type `Result<_, Box<EvalAltResult>>`
+   |
+   = help: the trait `Send` is not implemented for `(dyn std::error::Error + 'static)`
+   = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+   = note: required for `Unique<(dyn std::error::Error + 'static)>` to implement `Send`
+note: required because it appears within the type `Box<(dyn std::error::Error + 'static)>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `EvalAltResult`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/error.rs:27:10
+   |
+27 | pub enum EvalAltResult {
+   |          ^^^^^^^^^^^^^
+   = note: required for `Unique<EvalAltResult>` to implement `Send`
+note: required because it appears within the type `Box<EvalAltResult>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+   = note: required for `anyhow::Error` to implement `From<Box<EvalAltResult>>`
+
+error[E0277]: `?` couldn't convert the error: `Rc<Locked<Dynamic>>: Send` is not satisfied
+  --> src/tools.rs:67:78
+   |
+67 |         let result: String = self.engine.eval_ast_with_scope(&mut scope, ast)?;
+   |                                          ------------------------------------^ `Rc<Locked<Dynamic>>` cannot be sent between threads safely
+   |                                          |
+   |                                          this can't be annotated with `?` because it has type `Result<_, Box<EvalAltResult>>`
+   |
+   = help: within `EvalAltResult`, the trait `Send` is not implemented for `Rc<Locked<Dynamic>>`
+   = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+note: required because it appears within the type `rhai::types::dynamic::Union`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:61:10
+   |
+61 | pub enum Union {
+   |          ^^^^^
+note: required because it appears within the type `Dynamic`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:55:12
+   |
+55 | pub struct Dynamic(pub(crate) Union);
+   |            ^^^^^^^
+note: required because it appears within the type `EvalAltResult`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/error.rs:27:10
+   |
+27 | pub enum EvalAltResult {
+   |          ^^^^^^^^^^^^^
+   = note: required for `Unique<EvalAltResult>` to implement `Send`
+note: required because it appears within the type `Box<EvalAltResult>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+   = note: required for `anyhow::Error` to implement `From<Box<EvalAltResult>>`
+
+error[E0277]: `?` couldn't convert the error: `(dyn std::error::Error + 'static): std::marker::Sync` is not satisfied
+  --> src/tools.rs:67:78
+   |
+67 |         let result: String = self.engine.eval_ast_with_scope(&mut scope, ast)?;
+   |                                          ------------------------------------^ `(dyn std::error::Error + 'static)` cannot be shared between threads safely
+   |                                          |
+   |                                          this can't be annotated with `?` because it has type `Result<_, Box<EvalAltResult>>`
+   |
+   = help: the trait `std::marker::Sync` is not implemented for `(dyn std::error::Error + 'static)`
+   = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+   = note: required for `Unique<(dyn std::error::Error + 'static)>` to implement `std::marker::Sync`
+note: required because it appears within the type `Box<(dyn std::error::Error + 'static)>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `EvalAltResult`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/error.rs:27:10
+   |
+27 | pub enum EvalAltResult {
+   |          ^^^^^^^^^^^^^
+   = note: required for `Unique<EvalAltResult>` to implement `std::marker::Sync`
+note: required because it appears within the type `Box<EvalAltResult>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+   = note: required for `anyhow::Error` to implement `From<Box<EvalAltResult>>`
+
+error[E0277]: `?` couldn't convert the error: `Rc<Locked<Dynamic>>: std::marker::Sync` is not satisfied
+  --> src/tools.rs:67:78
+   |
+67 |         let result: String = self.engine.eval_ast_with_scope(&mut scope, ast)?;
+   |                                          ------------------------------------^ `Rc<Locked<Dynamic>>` cannot be shared between threads safely
+   |                                          |
+   |                                          this can't be annotated with `?` because it has type `Result<_, Box<EvalAltResult>>`
+   |
+   = help: within `EvalAltResult`, the trait `std::marker::Sync` is not implemented for `Rc<Locked<Dynamic>>`
+   = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+note: required because it appears within the type `rhai::types::dynamic::Union`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:61:10
+   |
+61 | pub enum Union {
+   |          ^^^^^
+note: required because it appears within the type `Dynamic`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:55:12
+   |
+55 | pub struct Dynamic(pub(crate) Union);
+   |            ^^^^^^^
+note: required because it appears within the type `EvalAltResult`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/error.rs:27:10
+   |
+27 | pub enum EvalAltResult {
+   |          ^^^^^^^^^^^^^
+   = note: required for `Unique<EvalAltResult>` to implement `std::marker::Sync`
+note: required because it appears within the type `Box<EvalAltResult>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+   = note: required for `anyhow::Error` to implement `From<Box<EvalAltResult>>`
+
+error[E0277]: `?` couldn't convert the error: `Rc<smartstring::SmartString<smartstring::config::LazyCompact>>: Send` is not satisfied
+  --> src/tools.rs:67:78
+   |
+67 |         let result: String = self.engine.eval_ast_with_scope(&mut scope, ast)?;
+   |                                          ------------------------------------^ `Rc<smartstring::SmartString<smartstring::config::LazyCompact>>` cannot be sent between threads safely
+   |                                          |
+   |                                          this can't be annotated with `?` because it has type `Result<_, Box<EvalAltResult>>`
+   |
+   = help: within `EvalAltResult`, the trait `Send` is not implemented for `Rc<smartstring::SmartString<smartstring::config::LazyCompact>>`
+   = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+note: required because it appears within the type `ImmutableString`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/immutable_string.rs:50:12
+   |
+50 | pub struct ImmutableString(Shared<SmartString>);
+   |            ^^^^^^^^^^^^^^^
+note: required because it appears within the type `rhai::types::dynamic::Union`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:61:10
+   |
+61 | pub enum Union {
+   |          ^^^^^
+note: required because it appears within the type `Dynamic`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:55:12
+   |
+55 | pub struct Dynamic(pub(crate) Union);
+   |            ^^^^^^^
+note: required because it appears within the type `EvalAltResult`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/error.rs:27:10
+   |
+27 | pub enum EvalAltResult {
+   |          ^^^^^^^^^^^^^
+   = note: required for `Unique<EvalAltResult>` to implement `Send`
+note: required because it appears within the type `Box<EvalAltResult>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+   = note: required for `anyhow::Error` to implement `From<Box<EvalAltResult>>`
+
+error[E0277]: `?` couldn't convert the error: `Rc<smartstring::SmartString<smartstring::config::LazyCompact>>: std::marker::Sync` is not satisfied
+  --> src/tools.rs:67:78
+   |
+67 |         let result: String = self.engine.eval_ast_with_scope(&mut scope, ast)?;
+   |                                          ------------------------------------^ `Rc<smartstring::SmartString<smartstring::config::LazyCompact>>` cannot be shared between threads safely
+   |                                          |
+   |                                          this can't be annotated with `?` because it has type `Result<_, Box<EvalAltResult>>`
+   |
+   = help: within `EvalAltResult`, the trait `std::marker::Sync` is not implemented for `Rc<smartstring::SmartString<smartstring::config::LazyCompact>>`
+   = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+note: required because it appears within the type `ImmutableString`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/immutable_string.rs:50:12
+   |
+50 | pub struct ImmutableString(Shared<SmartString>);
+   |            ^^^^^^^^^^^^^^^
+note: required because it appears within the type `rhai::types::dynamic::Union`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:61:10
+   |
+61 | pub enum Union {
+   |          ^^^^^
+note: required because it appears within the type `Dynamic`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:55:12
+   |
+55 | pub struct Dynamic(pub(crate) Union);
+   |            ^^^^^^^
+note: required because it appears within the type `EvalAltResult`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/error.rs:27:10
+   |
+27 | pub enum EvalAltResult {
+   |          ^^^^^^^^^^^^^
+   = note: required for `Unique<EvalAltResult>` to implement `std::marker::Sync`
+note: required because it appears within the type `Box<EvalAltResult>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+   = note: required for `anyhow::Error` to implement `From<Box<EvalAltResult>>`
+
+error[E0277]: `?` couldn't convert the error: `Rc<rhai::ast::ast::EncapsulatedEnviron>: Send` is not satisfied
+  --> src/tools.rs:67:78
+   |
+67 |         let result: String = self.engine.eval_ast_with_scope(&mut scope, ast)?;
+   |                                          ------------------------------------^ `Rc<rhai::ast::ast::EncapsulatedEnviron>` cannot be sent between threads safely
+   |                                          |
+   |                                          this can't be annotated with `?` because it has type `Result<_, Box<EvalAltResult>>`
+   |
+   = help: within `rhai::FnPtr`, the trait `Send` is not implemented for `Rc<rhai::ast::ast::EncapsulatedEnviron>`
+   = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+note: required because it appears within the type `Option<Rc<rhai::ast::ast::EncapsulatedEnviron>>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/core/src/option.rs:594:10
+note: required because it appears within the type `rhai::FnPtr`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/fn_ptr.rs:54:12
+   |
+54 | pub struct FnPtr {
+   |            ^^^^^
+   = note: required for `Unique<rhai::FnPtr>` to implement `Send`
+note: required because it appears within the type `Box<rhai::FnPtr>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `rhai::types::dynamic::Union`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:61:10
+   |
+61 | pub enum Union {
+   |          ^^^^^
+note: required because it appears within the type `Dynamic`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:55:12
+   |
+55 | pub struct Dynamic(pub(crate) Union);
+   |            ^^^^^^^
+note: required because it appears within the type `EvalAltResult`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/error.rs:27:10
+   |
+27 | pub enum EvalAltResult {
+   |          ^^^^^^^^^^^^^
+   = note: required for `Unique<EvalAltResult>` to implement `Send`
+note: required because it appears within the type `Box<EvalAltResult>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+   = note: required for `anyhow::Error` to implement `From<Box<EvalAltResult>>`
+
+error[E0277]: `?` couldn't convert the error: `Rc<rhai::ast::script_fn::ScriptFuncDef>: Send` is not satisfied
+  --> src/tools.rs:67:78
+   |
+67 |         let result: String = self.engine.eval_ast_with_scope(&mut scope, ast)?;
+   |                                          ------------------------------------^ `Rc<rhai::ast::script_fn::ScriptFuncDef>` cannot be sent between threads safely
+   |                                          |
+   |                                          this can't be annotated with `?` because it has type `Result<_, Box<EvalAltResult>>`
+   |
+   = help: within `rhai::FnPtr`, the trait `Send` is not implemented for `Rc<rhai::ast::script_fn::ScriptFuncDef>`
+   = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+note: required because it appears within the type `rhai::types::fn_ptr::FnPtrType`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/fn_ptr.rs:22:10
+   |
+22 | pub enum FnPtrType {
+   |          ^^^^^^^^^
+note: required because it appears within the type `rhai::FnPtr`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/fn_ptr.rs:54:12
+   |
+54 | pub struct FnPtr {
+   |            ^^^^^
+   = note: required for `Unique<rhai::FnPtr>` to implement `Send`
+note: required because it appears within the type `Box<rhai::FnPtr>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `rhai::types::dynamic::Union`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:61:10
+   |
+61 | pub enum Union {
+   |          ^^^^^
+note: required because it appears within the type `Dynamic`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:55:12
+   |
+55 | pub struct Dynamic(pub(crate) Union);
+   |            ^^^^^^^
+note: required because it appears within the type `EvalAltResult`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/error.rs:27:10
+   |
+27 | pub enum EvalAltResult {
+   |          ^^^^^^^^^^^^^
+   = note: required for `Unique<EvalAltResult>` to implement `Send`
+note: required because it appears within the type `Box<EvalAltResult>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+   = note: required for `anyhow::Error` to implement `From<Box<EvalAltResult>>`
+
+error[E0277]: `?` couldn't convert the error: `Shared<dyn Fn(NativeCallContext<'a>, &mut [&mut ...]) -> ...>: Send` is not satisfied
+  --> src/tools.rs:67:78
+   |
+67 |         let result: String = self.engine.eval_ast_with_scope(&mut scope, ast)?;
+   |                                          ------------------------------------^ `Shared<dyn Fn(NativeCallContext<'a>, &mut [&mut Dynamic]) -> ...>` cannot be sent between threads safely
+   |                                          |
+   |                                          this can't be annotated with `?` because it has type `Result<_, Box<EvalAltResult>>`
+   |
+   = help: within `rhai::FnPtr`, the trait `Send` is not implemented for `Shared<dyn Fn(NativeCallContext<'a>, &mut [&mut Dynamic]) -> ...>`
+   = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+note: required because it appears within the type `rhai::types::fn_ptr::FnPtrType`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/fn_ptr.rs:22:10
+   |
+22 | pub enum FnPtrType {
+   |          ^^^^^^^^^
+note: required because it appears within the type `rhai::FnPtr`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/fn_ptr.rs:54:12
+   |
+54 | pub struct FnPtr {
+   |            ^^^^^
+   = note: required for `Unique<rhai::FnPtr>` to implement `Send`
+note: required because it appears within the type `Box<rhai::FnPtr>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `rhai::types::dynamic::Union`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:61:10
+   |
+61 | pub enum Union {
+   |          ^^^^^
+note: required because it appears within the type `Dynamic`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:55:12
+   |
+55 | pub struct Dynamic(pub(crate) Union);
+   |            ^^^^^^^
+note: required because it appears within the type `EvalAltResult`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/error.rs:27:10
+   |
+27 | pub enum EvalAltResult {
+   |          ^^^^^^^^^^^^^
+   = note: required for `Unique<EvalAltResult>` to implement `Send`
+note: required because it appears within the type `Box<EvalAltResult>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+   = note: required for `anyhow::Error` to implement `From<Box<EvalAltResult>>`
+   = note: the full name for the type has been written to '/home/mi5/imaginarium/laboratorium/playground/python/samples/02-samples/14-research-agent/rust-research-agent/target/debug/deps/rust_research_agent-8026b4b0f3d3c1da.long-type-4381468294803007718.txt'
+   = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: `?` couldn't convert the error: `(dyn rhai::types::variant::Variant + 'static): Send` is not satisfied
+  --> src/tools.rs:67:78
+   |
+67 |         let result: String = self.engine.eval_ast_with_scope(&mut scope, ast)?;
+   |                                          ------------------------------------^ `(dyn rhai::types::variant::Variant + 'static)` cannot be sent between threads safely
+   |                                          |
+   |                                          this can't be annotated with `?` because it has type `Result<_, Box<EvalAltResult>>`
+   |
+   = help: the trait `Send` is not implemented for `(dyn rhai::types::variant::Variant + 'static)`
+   = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+   = note: required for `Unique<(dyn rhai::types::variant::Variant + 'static)>` to implement `Send`
+note: required because it appears within the type `Box<(dyn rhai::types::variant::Variant + 'static)>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+   = note: required for `Unique<Box<(dyn rhai::types::variant::Variant + 'static)>>` to implement `Send`
+note: required because it appears within the type `Box<Box<(dyn rhai::types::variant::Variant + 'static)>>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `rhai::types::dynamic::Union`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:61:10
+   |
+61 | pub enum Union {
+   |          ^^^^^
+note: required because it appears within the type `Dynamic`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:55:12
+   |
+55 | pub struct Dynamic(pub(crate) Union);
+   |            ^^^^^^^
+note: required because it appears within the type `EvalAltResult`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/error.rs:27:10
+   |
+27 | pub enum EvalAltResult {
+   |          ^^^^^^^^^^^^^
+   = note: required for `Unique<EvalAltResult>` to implement `Send`
+note: required because it appears within the type `Box<EvalAltResult>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+   = note: required for `anyhow::Error` to implement `From<Box<EvalAltResult>>`
+
+error[E0277]: `?` couldn't convert the error: `Rc<rhai::ast::ast::EncapsulatedEnviron>: std::marker::Sync` is not satisfied
+  --> src/tools.rs:67:78
+   |
+67 |         let result: String = self.engine.eval_ast_with_scope(&mut scope, ast)?;
+   |                                          ------------------------------------^ `Rc<rhai::ast::ast::EncapsulatedEnviron>` cannot be shared between threads safely
+   |                                          |
+   |                                          this can't be annotated with `?` because it has type `Result<_, Box<EvalAltResult>>`
+   |
+   = help: within `rhai::FnPtr`, the trait `std::marker::Sync` is not implemented for `Rc<rhai::ast::ast::EncapsulatedEnviron>`
+   = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+note: required because it appears within the type `Option<Rc<rhai::ast::ast::EncapsulatedEnviron>>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/core/src/option.rs:594:10
+note: required because it appears within the type `rhai::FnPtr`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/fn_ptr.rs:54:12
+   |
+54 | pub struct FnPtr {
+   |            ^^^^^
+   = note: required for `Unique<rhai::FnPtr>` to implement `std::marker::Sync`
+note: required because it appears within the type `Box<rhai::FnPtr>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `rhai::types::dynamic::Union`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:61:10
+   |
+61 | pub enum Union {
+   |          ^^^^^
+note: required because it appears within the type `Dynamic`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:55:12
+   |
+55 | pub struct Dynamic(pub(crate) Union);
+   |            ^^^^^^^
+note: required because it appears within the type `EvalAltResult`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/error.rs:27:10
+   |
+27 | pub enum EvalAltResult {
+   |          ^^^^^^^^^^^^^
+   = note: required for `Unique<EvalAltResult>` to implement `std::marker::Sync`
+note: required because it appears within the type `Box<EvalAltResult>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+   = note: required for `anyhow::Error` to implement `From<Box<EvalAltResult>>`
+
+error[E0277]: `?` couldn't convert the error: `Rc<rhai::ast::script_fn::ScriptFuncDef>: std::marker::Sync` is not satisfied
+  --> src/tools.rs:67:78
+   |
+67 |         let result: String = self.engine.eval_ast_with_scope(&mut scope, ast)?;
+   |                                          ------------------------------------^ `Rc<rhai::ast::script_fn::ScriptFuncDef>` cannot be shared between threads safely
+   |                                          |
+   |                                          this can't be annotated with `?` because it has type `Result<_, Box<EvalAltResult>>`
+   |
+   = help: within `rhai::FnPtr`, the trait `std::marker::Sync` is not implemented for `Rc<rhai::ast::script_fn::ScriptFuncDef>`
+   = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+note: required because it appears within the type `rhai::types::fn_ptr::FnPtrType`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/fn_ptr.rs:22:10
+   |
+22 | pub enum FnPtrType {
+   |          ^^^^^^^^^
+note: required because it appears within the type `rhai::FnPtr`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/fn_ptr.rs:54:12
+   |
+54 | pub struct FnPtr {
+   |            ^^^^^
+   = note: required for `Unique<rhai::FnPtr>` to implement `std::marker::Sync`
+note: required because it appears within the type `Box<rhai::FnPtr>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `rhai::types::dynamic::Union`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:61:10
+   |
+61 | pub enum Union {
+   |          ^^^^^
+note: required because it appears within the type `Dynamic`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:55:12
+   |
+55 | pub struct Dynamic(pub(crate) Union);
+   |            ^^^^^^^
+note: required because it appears within the type `EvalAltResult`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/error.rs:27:10
+   |
+27 | pub enum EvalAltResult {
+   |          ^^^^^^^^^^^^^
+   = note: required for `Unique<EvalAltResult>` to implement `std::marker::Sync`
+note: required because it appears within the type `Box<EvalAltResult>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+   = note: required for `anyhow::Error` to implement `From<Box<EvalAltResult>>`
+
+error[E0277]: `?` couldn't convert the error: `Shared<dyn Fn(NativeCallContext<'a>, &mut [&mut ...]) -> ...>: Sync` is not satisfied
+  --> src/tools.rs:67:78
+   |
+67 |         let result: String = self.engine.eval_ast_with_scope(&mut scope, ast)?;
+   |                                          ------------------------------------^ `Shared<dyn Fn(NativeCallContext<'a>, &mut [&mut Dynamic]) -> ...>` cannot be shared between threads safely
+   |                                          |
+   |                                          this can't be annotated with `?` because it has type `Result<_, Box<EvalAltResult>>`
+   |
+   = help: within `rhai::FnPtr`, the trait `std::marker::Sync` is not implemented for `Shared<dyn Fn(NativeCallContext<'a>, &mut [&mut Dynamic]) -> ...>`
+   = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+note: required because it appears within the type `rhai::types::fn_ptr::FnPtrType`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/fn_ptr.rs:22:10
+   |
+22 | pub enum FnPtrType {
+   |          ^^^^^^^^^
+note: required because it appears within the type `rhai::FnPtr`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/fn_ptr.rs:54:12
+   |
+54 | pub struct FnPtr {
+   |            ^^^^^
+   = note: required for `Unique<rhai::FnPtr>` to implement `std::marker::Sync`
+note: required because it appears within the type `Box<rhai::FnPtr>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `rhai::types::dynamic::Union`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:61:10
+   |
+61 | pub enum Union {
+   |          ^^^^^
+note: required because it appears within the type `Dynamic`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:55:12
+   |
+55 | pub struct Dynamic(pub(crate) Union);
+   |            ^^^^^^^
+note: required because it appears within the type `EvalAltResult`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/error.rs:27:10
+   |
+27 | pub enum EvalAltResult {
+   |          ^^^^^^^^^^^^^
+   = note: required for `Unique<EvalAltResult>` to implement `std::marker::Sync`
+note: required because it appears within the type `Box<EvalAltResult>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+   = note: required for `anyhow::Error` to implement `From<Box<EvalAltResult>>`
+   = note: the full name for the type has been written to '/home/mi5/imaginarium/laboratorium/playground/python/samples/02-samples/14-research-agent/rust-research-agent/target/debug/deps/rust_research_agent-8026b4b0f3d3c1da.long-type-4381468294803007718.txt'
+   = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: `?` couldn't convert the error: `(dyn rhai::types::variant::Variant + 'static): std::marker::Sync` is not satisfied
+  --> src/tools.rs:67:78
+   |
+67 |         let result: String = self.engine.eval_ast_with_scope(&mut scope, ast)?;
+   |                                          ------------------------------------^ `(dyn rhai::types::variant::Variant + 'static)` cannot be shared between threads safely
+   |                                          |
+   |                                          this can't be annotated with `?` because it has type `Result<_, Box<EvalAltResult>>`
+   |
+   = help: the trait `std::marker::Sync` is not implemented for `(dyn rhai::types::variant::Variant + 'static)`
+   = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+   = note: required for `Unique<(dyn rhai::types::variant::Variant + 'static)>` to implement `std::marker::Sync`
+note: required because it appears within the type `Box<(dyn rhai::types::variant::Variant + 'static)>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+   = note: required for `Unique<Box<(dyn rhai::types::variant::Variant + 'static)>>` to implement `std::marker::Sync`
+note: required because it appears within the type `Box<Box<(dyn rhai::types::variant::Variant + 'static)>>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `rhai::types::dynamic::Union`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:61:10
+   |
+61 | pub enum Union {
+   |          ^^^^^
+note: required because it appears within the type `Dynamic`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/dynamic.rs:55:12
+   |
+55 | pub struct Dynamic(pub(crate) Union);
+   |            ^^^^^^^
+note: required because it appears within the type `EvalAltResult`
+  --> /home/mi5/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rhai-1.23.6/src/types/error.rs:27:10
+   |
+27 | pub enum EvalAltResult {
+   |          ^^^^^^^^^^^^^
+   = note: required for `Unique<EvalAltResult>` to implement `std::marker::Sync`
+note: required because it appears within the type `Box<EvalAltResult>`
+  --> /usr/src/debug/rust/rustc-1.91.1-src/library/alloc/src/boxed.rs:231:12
+   = note: required for `anyhow::Error` to implement `From<Box<EvalAltResult>>`
+
+warning: variable does not need to be mutable
+  --> src/tools.rs:15:13
+   |
+15 |         let mut engine = Engine::new();
+   |             ----^^^^^^
+   |             |
+   |             help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.
+warning: `rust-research-agent` (bin "rust-research-agent") generated 3 warnings
+error: could not compile `rust-research-agent` (bin "rust-research-agent") due to 17 previous errors; 3 warnings emitted

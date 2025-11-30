@@ -14,9 +14,13 @@ impl LlmClient {
         let config = aws_config::load_defaults(BehaviorVersion::latest()).await;
         let client = Client::new(&config);
         
+        // Read model ID from environment variable, fallback to Claude 3 Sonnet
+        let model_id = std::env::var("MODEL_ID")
+            .unwrap_or_else(|_| "anthropic.claude-3-sonnet-20240229-v1:0".to_string());
+        
         Ok(Self {
             client,
-            model_id: "anthropic.claude-3-sonnet-20240229-v1:0".to_string(), // Default to Claude 3 Sonnet
+            model_id,
         })
     }
 

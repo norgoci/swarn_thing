@@ -132,19 +132,45 @@ graph LR
    cd rust-research-agent
    ```
 
-2. **Build the project**:
+2. **Configure environment variables** (optional):
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Edit `.env` to customize your configuration:
+
+   ```bash
+   # AWS Credentials (required)
+   AWS_ACCESS_KEY_ID=your_access_key_here
+   AWS_SECRET_ACCESS_KEY=your_secret_key_here
+   AWS_DEFAULT_REGION=us-east-1
+
+   # Model Configuration (optional - defaults to Claude 3 Sonnet)
+   MODEL_ID=anthropic.claude-3-sonnet-20240229-v1:0
+   ```
+
+   **Available Models:**
+   - `anthropic.claude-3-5-sonnet-20240620-v1:0` - Claude 3.5 Sonnet (newest, most capable)
+   - `anthropic.claude-3-sonnet-20240229-v1:0` - Claude 3 Sonnet (default, balanced)
+   - `anthropic.claude-3-haiku-20240307-v1:0` - Claude 3 Haiku (faster, cheaper)
+   - `anthropic.claude-3-opus-20240229-v1:0` - Claude 3 Opus (most powerful)
+
+   > **Note:** If `MODEL_ID` is not set, the agent defaults to Claude 3 Sonnet.
+
+3. **Build the project**:
 
    ```bash
    cargo build --release
    ```
 
-3. **Run the agent**:
+4. **Run the agent**:
 
    ```bash
    cargo run
    ```
 
-4. **Expected startup output**:
+5. **Expected startup output**:
 
    ```
    Rust Swarn Thing Initializing...

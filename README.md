@@ -1,5 +1,7 @@
 # Swarm Thing
 
+> **Note**: This project uses Amazon Strands.
+
 A self-evolving, self-replicating AI agent built in Rust that can dynamically create and compose its own tools, communicate with other agents, and clone itself to new locations—all using the Rhai scripting language for runtime tool evolution.
 
 ## What Makes This Special?
@@ -15,18 +17,75 @@ Tools can call other tools, creating increasingly sophisticated behaviors. An ag
 **🤝 Collaborate with Other Agents**  
 Multiple agents can run simultaneously and communicate via HTTP. They can share knowledge, distribute work, and even send each other tool source code. One agent discovers a useful technique? It can teach it to the entire swarm.
 
-**🧬 Replicate Themselves**  
-Agents can create perfect copies of themselves—complete with all learned tools and configurations. This enables:
-- Creating specialized agents for different tasks
-- Backing up an agent before risky experiments  
-- Deploying agent swarms across multiple machines
-- Preserving "snapshots" of an agent's evolution at key moments
+**🧬 Autonomously Replicate Themselves**  
+Agents can create perfect copies of themselves—complete with all learned tools and configurations—to new locations. This enables creating specialized agents for different tasks, backing up an agent before risky experiments, deploying agent swarms across multiple machines, or preserving "snapshots" of an agent's evolution at key moments.
 
 **🔍 Understand Their Own Capabilities**  
 Agents can inspect their own tools, list what they know how to do, and even improve existing tools. This self-awareness enables continuous refinement and optimization.
 
 **Why This Matters:**  
 Traditional AI agents have fixed capabilities. This agent **evolves**. It's not just a chatbot—it's a self-improving system that grows more capable over time, can work in teams, and can reproduce itself. Think of it as a step toward emergent AI behaviors and autonomous agent ecosystems.
+
+## 🤖 Autonomy Level
+
+The agent is designed as a **semi-autonomous assistant** (Human-in-the-Loop). It is not a "set and forget" system that runs forever on its own; rather, it is a powerful force multiplier that acts as a collaborator.
+
+### The Partnership Model:
+
+1.  **You define the "What" (Strategy)**:
+    *   You provide the high-level goals (e.g., "Analyze this dataset," "Create a backup").
+    *   You act as the manager or director.
+
+2.  **The Agent handles the "How" (Tactics)**:
+    *   The agent autonomously figures out the necessary steps to achieve your goal.
+    *   It writes its own code, compiles it, creates new tools, and executes them without needing you to write a single line of Rust or Rhai.
+
+3.  **The "Loop" (Oversight)**:
+    *   The agent pauses for your approval on critical or risky actions, such as:
+        *   Making network requests.
+        *   Installing tools received from other (potentially untrusted) agents.
+        *   Performing irreversible file operations.
+
+This design aims to give you the **speed and capability** of an autonomous AI (writing code, self-replicating) while keeping the **safety and control** firmly in your hands.
+
+```mermaid
+sequenceDiagram
+    participant User as User (Strategy)
+    participant Agent as Agent (Tactics)
+
+    User->>Agent: 1. Define Goal ("What")
+    loop Execution Loop
+        Agent->>Agent: Plan & Write Code
+        Agent->>Agent: Compile Tool
+        
+        alt Critical Action / Risk
+            Agent->>User: Request Approval
+            User-->>Agent: 2. Oversight ("Yes/No")
+        else Safe Action
+            Agent->>Agent: Execute Automatically
+        end
+    end
+    Agent->>User: Deliver Result
+```
+
+### How it works:
+- **You provide the Goal**: "Analyze this data file."
+- **Agent handles the Execution**: It autonomously decides it needs a new tool, writes the code for that tool, compiles it, and executes it—all without you needing to write a single line of Rust or Rhai.
+- **Strategic Self-Replication**: The agent can autonomously decide to clone itself if the task requires it (e.g., "Create a backup before this risky operation" or "Deploy a worker to /tmp").
+- **You provide Oversight**: Critical network actions or installing tools from strangers require your approval.
+
+### Example Scenario 1: Tool Creation
+1. **User**: "I need to know the top 3 words in `data.txt`."
+2. **Agent**: Generates, compiles, and runs a `word_count` tool.
+3. **Result**: "The top 3 words are..."
+
+### Example Scenario 2: Autonomous Cloning
+1. **User**: "We are about to change the core system. Make sure we have a fallback."
+2. **Agent**: "Understood. I will create a backup clone first."
+   - *Action*: Executes `[TOOL: clone_agent(./backup_agent)]`
+   - *Result*: "Backup created at ./backup_agent. Now proceeding with changes..."
+
+This balance allows for rapid capability growth while preventing the agent from doing dangerous things (like deleting files or spamming APIs) without supervision.
 
 ## Features
 
@@ -57,12 +116,23 @@ Traditional AI agents have fixed capabilities. This agent **evolves**. It's not 
 - **Tool Sharing**: Agents can share tool source code with each other
 - **Distributed Systems**: Enable agent collaboration on complex tasks
 
-### 🧬 Self-Replication
+### 🧬 Autonomous Self-Replication
 
 - **`clone_agent(target_dir)`**: Create physical copies of the agent to new locations
 - **Complete Cloning**: Copies executable, all learned tools, and configuration
 - **Independent Evolution**: Clones can evolve separately from the original
 - **Specialization**: Preserve agent state at specific evolution points
+
+#### How it works
+1. **Executable Copy**: The running binary copies itself to the target directory.
+2. **Tool Transfer**: The entire `tools/` directory (containing all learned skills) is recursively copied.
+3. **Config Preservation**: The `.env` file is copied to maintain API access and settings.
+
+#### Limitations
+> [!IMPORTANT]
+> **State Persistence**: The cloning process copies **persistent state** (tools, configuration) but **NOT in-memory state**. 
+> - The cloned agent starts as a fresh instance with empty conversation history.
+> - It retains all *skills* (tools) but loses the current *context* (chat logs).
 
 ## Architecture
 
@@ -582,7 +652,7 @@ return num \* num;
 
 Agent B can then manually create the tool or ask its LLM to create it based on the received code.
 
-**Note:** Automatic tool creation from IPC messages is not yet implemented. Agent B must manually process the received code.
+**Note:** This method sends raw code as text. For automatic queuing and approval, use the `share_tool` function described in the [Automatic Tool Creation](#11-automatic-tool-creation-beta) section.
 
 #### Tool Explanation and Teaching
 

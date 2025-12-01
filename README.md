@@ -1,6 +1,32 @@
-# Rust Swarm Thing
+# Swarm Thing
 
-A self-evolving AI agent built in Rust that can dynamically create, compose, and inspect its own tools using the Rhai scripting language.
+A self-evolving, self-replicating AI agent built in Rust that can dynamically create and compose its own tools, communicate with other agents, and clone itself to new locations—all using the Rhai scripting language for runtime tool evolution.
+
+## What Makes This Special?
+
+Imagine an AI agent that doesn't just follow instructions—it **learns new skills on the fly**. This project creates AI agents that can:
+
+**🧠 Teach Themselves New Abilities**  
+When faced with a task it can't handle, the agent writes its own tools in real-time. Need to calculate fibonacci numbers? It creates a `fibonacci` tool. Need to process data? It builds a custom processor. These tools persist and become part of the agent's permanent skillset.
+
+**🔗 Build on What They Know**  
+Tools can call other tools, creating increasingly sophisticated behaviors. An agent might create a simple `square` tool, then build a `square_and_double` tool on top of it, then combine multiple tools into complex workflows—all autonomously.
+
+**🤝 Collaborate with Other Agents**  
+Multiple agents can run simultaneously and communicate via HTTP. They can share knowledge, distribute work, and even send each other tool source code. One agent discovers a useful technique? It can teach it to the entire swarm.
+
+**🧬 Replicate Themselves**  
+Agents can create perfect copies of themselves—complete with all learned tools and configurations. This enables:
+- Creating specialized agents for different tasks
+- Backing up an agent before risky experiments  
+- Deploying agent swarms across multiple machines
+- Preserving "snapshots" of an agent's evolution at key moments
+
+**🔍 Understand Their Own Capabilities**  
+Agents can inspect their own tools, list what they know how to do, and even improve existing tools. This self-awareness enables continuous refinement and optimization.
+
+**Why This Matters:**  
+Traditional AI agents have fixed capabilities. This agent **evolves**. It's not just a chatbot—it's a self-improving system that grows more capable over time, can work in teams, and can reproduce itself. Think of it as a step toward emergent AI behaviors and autonomous agent ecosystems.
 
 ## Features
 
@@ -23,6 +49,20 @@ A self-evolving AI agent built in Rust that can dynamically create, compose, and
 - **`write_file(path, content)`**: Write to files
 - **`search(query)`**: Mock search functionality
 - **`scrape_url(url)`**: Real web scraper using `reqwest` and `scraper`
+
+### 🤝 Inter-Agent Communication
+
+- **`start_server(port)`**: Launch HTTP server for receiving messages from other agents
+- **`send_message(url, message)`**: Send messages to other agents via HTTP
+- **Tool Sharing**: Agents can share tool source code with each other
+- **Distributed Systems**: Enable agent collaboration on complex tasks
+
+### 🧬 Self-Replication
+
+- **`clone_agent(target_dir)`**: Create physical copies of the agent to new locations
+- **Complete Cloning**: Copies executable, all learned tools, and configuration
+- **Independent Evolution**: Clones can evolve separately from the original
+- **Specialization**: Preserve agent state at specific evolution points
 
 ## Architecture
 
@@ -96,8 +136,8 @@ sequenceDiagram
 ```mermaid
 graph LR
     subgraph "Tool Evolution"
-        A[tool_a<br/>x + "_A"] --> B[tool_b<br/>tool_a(x) + "_B"]
-        B --> C[tool_c<br/>tool_b(x) + "_C"]
+        A["tool_a<br/>x + '_A'"] --> B["tool_b<br/>tool_a(x) + '_B'"]
+        B --> C["tool_c<br/>tool_b(x) + '_C'"]
     end
 
     Input["test"] --> A
@@ -543,6 +583,106 @@ return num \* num;
 Agent B can then manually create the tool or ask its LLM to create it based on the received code.
 
 **Note:** Automatic tool creation from IPC messages is not yet implemented. Agent B must manually process the received code.
+
+#### Tool Explanation and Teaching
+
+Beyond sharing raw code, agents can explain tools to each other in natural language, providing context, usage examples, and best practices.
+
+**Agent A explains a tool to Agent B:**
+
+*Terminal 1 - Agent B:*
+```
+> [TOOL: start_server(8081)]
+🚀 IPC Server starting on http://127.0.0.1:8081
+```
+
+*Terminal 2 - Agent A:*
+````
+> Explain the square_and_double tool to Agent B at http://127.0.0.1:8081/message
+
+Agent A: Let me inspect the tool and create an explanation.
+
+[TOOL: inspect_tool(square_and_double)]
+
+I'll send a detailed explanation to Agent B.
+
+```rhai
+// filename: teach_tool
+fn teach_tool(dummy) {
+    let explanation = "Tool: square_and_double\n\nPurpose: Takes a number, squares it, then doubles the result.\n\nUsage: [TOOL: square_and_double(5)]\nExample Output: 50\n\nHow it works:\n1. Calls the 'square' tool internally\n2. Multiplies the squared result by 2\n\nBest for: Quick mathematical transformations when you need both squaring and doubling.";
+    return send_message("http://127.0.0.1:8081/message", explanation);
+}
+```
+
+> [TOOL: teach_tool(x)]
+
+📤 Sending explanation to Agent B...
+Tool Output: Response: {"status":"ok","received":"Tool: square_and_double..."}
+````
+
+*Terminal 1 - Agent B receives:*
+```
+📨 Received message: Tool: square_and_double
+
+Purpose: Takes a number, squares it, then doubles the result.
+
+Usage: [TOOL: square_and_double(5)]
+Example Output: 50
+
+How it works:
+1. Calls the 'square' tool internally
+2. Multiplies the squared result by 2
+
+Best for: Quick mathematical transformations when you need both squaring and doubling.
+```
+
+**Agent B can now understand and use the tool:**
+
+*Agent B:*
+````
+> I received information about square_and_double. Can you create this tool for me?
+
+Agent B: Based on the explanation, I'll create the tool.
+
+```rhai
+// filename: square_and_double
+fn square_and_double(x) {
+    let squared = square(x);
+    return parse_int(squared) * 2;
+}
+```
+
+Tool created successfully!
+
+> [TOOL: square_and_double(5)]
+Tool Output: 50
+````
+
+**Teaching Multiple Tools:**
+
+Agents can also send a catalog of their capabilities:
+
+````
+> Send a list of all your tools with brief descriptions to Agent B
+
+Agent A:
+```rhai
+// filename: send_catalog
+fn send_catalog(dummy) {
+    let tools = list_tools();
+    let catalog = "Available Tools:\n\n1. square(x) - Returns x²\n2. square_and_double(x) - Returns (x²) * 2\n3. fibonacci(n) - Calculates nth Fibonacci number\n\nRequest any tool explanation for details!";
+    return send_message("http://127.0.0.1:8081/message", catalog);
+}
+```
+````
+
+**Benefits of Tool Teaching:**
+- **Context**: Agents learn *when* to use tools, not just *how*
+- **Examples**: Concrete usage patterns help agents apply tools correctly
+- **Composition**: Agents understand tool dependencies and relationships
+- **Efficiency**: Natural language explanations are faster to process than analyzing code
+
+**Note:** This approach combines `inspect_tool()`, `list_tools()`, and `send_message()` with the agent's LLM capabilities to generate human-readable documentation.
 
 ---
 

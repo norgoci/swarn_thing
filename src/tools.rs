@@ -2,6 +2,20 @@ use anyhow::{Result, anyhow};
 use rhai::{Engine, Scope, AST};
 use std::fs;
 use std::path::PathBuf;
+use std::time::SystemTime;
+use std::sync::{Arc, Mutex};
+use crate::message::{ToolSafetyLevel, IpcMessage};
+
+/// A tool awaiting approval before installation
+#[derive(Debug, Clone)]
+pub struct PendingTool {
+    pub name: String,
+    pub code: String,
+    pub source_agent: String,
+    pub received_at: SystemTime,
+    pub description: Option<String>,
+    pub safety_level: ToolSafetyLevel,
+}
 
 // Helper function for recursive directory copying
 fn copy_dir_recursive(src: &PathBuf, dst: &PathBuf) -> Result<()> {
@@ -22,16 +36,46 @@ fn copy_dir_recursive(src: &PathBuf, dst: &PathBuf) -> Result<()> {
     Ok(())
 }
 
+fn validate_tool_code(code: &str) -> ToolSafetyLevel {
+    // Basic validation logic
+    if code.len() > 10_000 {
+        return ToolSafetyLevel::HighRisk; // Too large
+    }
+    
+    // Check for risky keywords
+    if code.contains("write_file") || 
+       code.contains("clone_agent") || 
+       code.contains("start_server") ||
+       code.contains("std::process") {
+        return ToolSafetyLevel::HighRisk;
+    }
+    
+    if code.contains("read_file") || code.contains("scrape_url") {
+        return ToolSafetyLevel::MediumRisk;
+    }
+    
+    if code.contains("send_message") {
+        return ToolSafetyLevel::LowRisk;
+    }
+    
+    // Default to Safe if just pure computation
+    ToolSafetyLevel::Safe
+}
+
 pub struct ToolManager {
     engine: Engine,
     global_ast: AST,
     tools_dir: PathBuf,
+    pub pending_tools: Arc<Mutex<Vec<PendingTool>>>,
 }
 
 impl ToolManager {
     pub fn new() -> Result<Self> {
         let mut engine = Engine::new();
         let tools_dir = PathBuf::from("tools");
+        
+        // Initialize pending tools early so it can be captured
+        let pending_tools = Arc::new(Mutex::new(Vec::new()));
         
         if !tools_dir.exists() {
             fs::create_dir(&tools_dir)?;
@@ -147,8 +191,10 @@ impl ToolManager {
             }).join().unwrap_or_else(|_| "Thread panic".to_string())
         });
 
-        engine.register_fn("start_server", |port: &str| -> String {
+        let pending_clone = pending_tools.clone();
+        engine.register_fn("start_server", move |port: &str| -> String {
             let port_num: u16 = port.parse().unwrap_or(8080);
+            let pending = pending_clone.clone();
             
             println!("🚀 Starting IPC server on port {}", port_num);
             
@@ -156,7 +202,7 @@ impl ToolManager {
             std::thread::spawn(move || {
                 let rt = tokio::runtime::Runtime::new().unwrap();
                 rt.block_on(async {
-                    if let Err(e) = crate::ipc::start_http_server(port_num).await {
+                    if let Err(e) = crate::ipc::start_http_server(port_num, pending).await {
                         eprintln!("Server error: {}", e);
                     }
                 });
@@ -221,10 +267,148 @@ impl ToolManager {
         // Initialize with an empty AST
         let global_ast = engine.compile("").map_err(|e| anyhow::anyhow!("Rhai init error: {}", e))?;
 
+        // Register Pending Tool Management Functions
+        
+        // list_pending_tools
+        let pending_clone = pending_tools.clone();
+        engine.register_fn("list_pending_tools", move || -> String {
+            let tools = pending_clone.lock().unwrap();
+            if tools.is_empty() {
+                return "No tools pending approval.".to_string();
+            }
+            
+            let mut output = String::from("Pending Tools:\n");
+            for (i, tool) in tools.iter().enumerate() {
+                output.push_str(&format!("{}. {} (Safety: {:?}) - From: {}\n", 
+                    i + 1, tool.name, tool.safety_level, tool.source_agent));
+                if let Some(desc) = &tool.description {
+                    output.push_str(&format!("   Description: {}\n", desc));
+                }
+            }
+            output
+        });
+
+        // approve_tool
+        let pending_clone = pending_tools.clone();
+        let tools_dir_clone = tools_dir.clone();
+        // Removed engine_clone as Engine is not Clone and we don't strictly need it for writing files
+        // Actually Engine might not be cheap or thread safe to share like this for compilation inside closure?
+        // Wait, create_tool logic needs to be duplicated or we need a way to call it.
+        // create_tool modifies global_ast which is in ToolManager, not available here.
+        // We can just write the file and let the next load pick it up? 
+        // Or we can try to compile it here.
+        // For MVP, let's just write the file and say "Installed. Restart or reload might be needed if hot reload not fully working".
+        // But wait, create_tool in ToolManager does: write file + compile + merge AST.
+        // We can't easily merge AST from here without access to ToolManager's global_ast.
+        // However, we can register a function that just writes the file, and maybe we can trigger a reload?
+        // Or we can rely on the fact that we are inside Rhai, maybe we can eval the code?
+        // Let's just write the file for now. The agent might need to reload tools.
+        // Actually, we can use the `engine` passed to `new`? No, we need to modify `global_ast` which is in `ToolManager`.
+        // This is a limitation. 
+        // Let's implement `approve_tool` to just write the file and return "Tool saved. Please run [TOOL: reload_tools()]" (if we had one).
+        // Or better: The `ToolManager` methods I added (`approve_tool`) *do* have access to `self`.
+        // But I can't call them from the registered function easily.
+        // I will implement the logic to write file here.
+        
+        engine.register_fn("approve_tool", move |name: &str| -> String {
+            let mut tools = pending_clone.lock().unwrap();
+            if let Some(index) = tools.iter().position(|t| t.name == name) {
+                let tool = tools.remove(index);
+                let path = tools_dir_clone.join(format!("{}.rhai", tool.name));
+                if let Err(e) = fs::write(&path, &tool.code) {
+                    return format!("Error writing tool file: {}", e);
+                }
+                // We can't easily update global_ast here without shared access to it.
+                // For Phase 1, we'll accept that it saves to disk. 
+                // We can add a `reload_tools` native function later or just say it's available next run.
+                // Actually, we can try to compile it using a temporary engine to check validity, but we can't add to global AST of the main engine easily from here.
+                format!("Tool '{}' approved and saved to disk. It will be available after reload.", name)
+            } else {
+                format!("Tool '{}' not found in pending queue", name)
+            }
+        });
+
+        // reject_tool
+        let pending_clone = pending_tools.clone();
+        engine.register_fn("reject_tool", move |name: &str| -> String {
+            let mut tools = pending_clone.lock().unwrap();
+            if let Some(index) = tools.iter().position(|t| t.name == name) {
+                tools.remove(index);
+                format!("Tool '{}' rejected and removed from queue", name)
+            } else {
+                format!("Tool '{}' not found in pending queue", name)
+            }
+        });
+        
+        // share_tool
+        let tools_dir_clone = tools_dir.clone();
+        engine.register_fn("share_tool", move |url: &str, tool_name: &str| -> String {
+            // 1. Get tool code
+            let path = tools_dir_clone.join(format!("{}.rhai", tool_name));
+            let code = match fs::read_to_string(&path) {
+                Ok(c) => c,
+                Err(_) => return format!("Error: Tool '{}' not found", tool_name),
+            };
+            
+            // 2. Validate to get safety level
+            // We need to duplicate validate_tool_code logic or make it available. 
+            // It's a standalone function, so we can call it.
+            // But it's defined below. We might need to move it up or use it.
+            // Rust allows calling functions defined later.
+            // But `validate_tool_code` is not in scope of the closure? It is if it's in the same module.
+            // Wait, `validate_tool_code` is private. Closures in `new` can call private functions of the module.
+            // But `validate_tool_code` returns `ToolSafetyLevel` which is imported.
+            
+            // We need to verify `validate_tool_code` is accessible.
+            // It is defined in the same file.
+            
+            // 3. Create message
+            // We need to determine safety level.
+            // Let's assume we can call validate_tool_code.
+            // Wait, I can't call a function inside the closure if it's not captured? 
+            // No, static functions are fine.
+            
+            // However, `validate_tool_code` is defined *outside* `impl ToolManager`.
+            // So it's just a function in the module.
+            
+            // We need to handle the async send inside sync closure.
+            // Use the same thread spawn trick as send_message.
+            
+            let url = url.to_string();
+            let tool_name = tool_name.to_string();
+            let code_clone = code.clone();
+            
+            std::thread::spawn(move || {
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                rt.block_on(async {
+                    let safety = validate_tool_code(&code_clone);
+                    
+                    let msg = IpcMessage::tool_share(
+                        &tool_name,
+                        &code_clone,
+                        Some("Shared via share_tool".to_string()),
+                        safety
+                    );
+                    
+                    let client = reqwest::Client::new();
+                    match client.post(&url).json(&msg).send().await {
+                        Ok(resp) => {
+                            match resp.text().await {
+                                Ok(text) => format!("Response: {}", text),
+                                Err(e) => format!("Error reading response: {}", e),
+                            }
+                        },
+                        Err(e) => format!("Error sending message: {}", e),
+                    }
+                })
+            }).join().unwrap_or_else(|_| "Thread panic".to_string())
+        });
+
         Ok(Self {
             engine,
             global_ast,
             tools_dir,
+            pending_tools,
         })
     }
 
@@ -323,5 +507,62 @@ impl ToolManager {
                 }
             }
         }
+    }
+
+    pub fn queue_tool(&mut self, name: String, code: String, source_agent: String, description: Option<String>) -> Result<String> {
+        let safety_level = validate_tool_code(&code);
+        
+        let pending = PendingTool {
+            name: name.clone(),
+            code,
+            source_agent,
+            received_at: SystemTime::now(),
+            description,
+            safety_level: safety_level.clone(),
+        };
+        
+        self.pending_tools.lock().unwrap().push(pending);
+        
+        Ok(format!("Tool '{}' queued for approval (Safety: {:?})", name, safety_level))
+    }
+
+    pub fn approve_tool(&mut self, name: &str) -> Result<String> {
+        let mut tools = self.pending_tools.lock().unwrap();
+        if let Some(index) = tools.iter().position(|t| t.name == name) {
+            let tool = tools.remove(index);
+            // Drop lock before calling create_tool to avoid potential deadlocks (though create_tool doesn't lock pending_tools)
+            drop(tools);
+            self.create_tool(&tool.name, &tool.code)?;
+            Ok(format!("Tool '{}' approved and installed successfully", name))
+        } else {
+            Err(anyhow!("Tool '{}' not found in pending queue", name))
+        }
+    }
+
+    pub fn reject_tool(&mut self, name: &str) -> Result<String> {
+        let mut tools = self.pending_tools.lock().unwrap();
+        if let Some(index) = tools.iter().position(|t| t.name == name) {
+            tools.remove(index);
+            Ok(format!("Tool '{}' rejected and removed from queue", name))
+        } else {
+            Err(anyhow!("Tool '{}' not found in pending queue", name))
+        }
+    }
+
+    pub fn list_pending_tools(&self) -> String {
+        let tools = self.pending_tools.lock().unwrap();
+        if tools.is_empty() {
+            return "No tools pending approval.".to_string();
+        }
+        
+        let mut output = String::from("Pending Tools:\n");
+        for (i, tool) in tools.iter().enumerate() {
+            output.push_str(&format!("{}. {} (Safety: {:?}) - From: {}\n", 
+                i + 1, tool.name, tool.safety_level, tool.source_agent));
+            if let Some(desc) = &tool.description {
+                output.push_str(&format!("   Description: {}\n", desc));
+            }
+        }
+        output
     }
 }

@@ -795,21 +795,67 @@ rust-research-agent/
     └── inspection_test.rs
 ```
 
+### 11. Automatic Tool Creation (Beta)
+
+Agents can now share tools that are automatically queued for approval.
+
+**Workflow:**
+
+1. **Agent A shares a tool:**
+   ```
+   > [TOOL: share_tool(http://127.0.0.1:8081/message, square)]
+   ```
+
+2. **Agent B receives and queues it:**
+   ```
+   📦 Received ToolShare: square (Safety: Safe)
+   Tool 'square' received and queued for approval.
+   ```
+
+3. **Agent B checks the queue:**
+   ```
+   > [TOOL: list_pending_tools()]
+   Pending Tools:
+   1. square (Safety: Safe) - From: remote_agent
+   ```
+
+4. **Agent B approves the tool:**
+   ```
+   > [TOOL: approve_tool(square)]
+   Tool 'square' approved and saved to disk. It will be available after reload.
+   ```
+
+**Safety Levels:**
+- **Safe**: Pure computation
+- **LowRisk**: Reads data, sends messages
+- **MediumRisk**: Reads files, scrapes URLs
+- **HighRisk**: Writes files, system operations
+
+---
+
 ## Limitations
 
-- **No Version Control**: Tool overwrites are permanent (no history)
-- **Simple Argument Passing**: Tools currently support 0 or 1 string argument
-- **Synchronous Execution**: Native tools block the event loop
+- **No Version Control**: Tool overwrites are permanent (no history or rollback)
+- **Simple Argument Passing**: Tools currently support 0 or 1 string argument only
+- **Synchronous Execution**: Native tools block the event loop (web scraping, IPC use blocking threads)
 - **No Authentication**: IPC has no auth layer (localhost only for security)
-- **Manual Tool Sharing**: Agent B must manually process received tool code (no automatic creation)
+- **Approval Queue**: Tools received via IPC require manual approval (no fully autonomous installation yet)
+- **No Token Tracking**: No monitoring of LLM token usage or cost budgets
+- **Unbounded Conversation History**: Agent history grows indefinitely with no pruning or size limits
+- **No Error Recovery**: Failed tool executions have no automatic retry logic
+- **No Hot Reloading**: Tools persist to disk but require manual reload (restart or explicit load)
 
 ## Future Enhancements
 
 - [ ] Tool versioning and rollback system
 - [ ] Multi-argument support for tools
 - [ ] Async tool execution (non-blocking)
-- [ ] Automatic tool creation from IPC messages
+- [x] Automatic tool creation from IPC messages (Phase 1: Approval Queue)
 - [ ] Authentication/authorization for IPC
 - [ ] Message queuing and persistence
 - [ ] Tool marketplace/sharing platform
 - [ ] Agent discovery and registry service
+- [ ] Token usage tracking and budget limits
+- [ ] Conversation history pruning and management
+- [ ] Automatic error recovery and retry logic
+- [ ] Hot reloading of tools without restart

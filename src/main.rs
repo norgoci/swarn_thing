@@ -3,8 +3,8 @@ use dotenv::dotenv;
 use std::io::{self, Write};
 use text_colorizer::*;
 
-use rust_research_agent::agent::Agent;
-use rust_research_agent::tools::ToolManager;
+use swarm_thing::agent::Agent;
+use swarm_thing::tools::ToolManager;
 
 #[tokio::main]
 async fn main() -> Result<()> {

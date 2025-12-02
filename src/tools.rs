@@ -3,7 +3,7 @@ use rhai::{Engine, Scope, AST};
 use std::fs;
 use std::path::PathBuf;
 use std::time::SystemTime;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use crate::message::{ToolSafetyLevel, IpcMessage};
 
 /// A tool awaiting approval before installation
@@ -62,9 +62,27 @@ fn validate_tool_code(code: &str) -> ToolSafetyLevel {
     ToolSafetyLevel::Safe
 }
 
+fn load_all_tools(tools_dir: &PathBuf) -> Result<AST> {
+    let engine = Engine::new();
+    let mut combined_ast = engine.compile("").map_err(|e| anyhow::anyhow!("Rhai init error: {}", e))?;
+    
+    if tools_dir.exists() {
+        for entry in fs::read_dir(tools_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("rhai") {
+                let script = fs::read_to_string(&path)?;
+                let ast = engine.compile(&script).map_err(|e| anyhow::anyhow!("Rhai compile error in {:?}: {}", path, e))?;
+                combined_ast += ast;
+            }
+        }
+    }
+    Ok(combined_ast)
+}
+
 pub struct ToolManager {
     engine: Engine,
-    global_ast: AST,
+    global_ast: Arc<RwLock<AST>>,
     tools_dir: PathBuf,
     pub pending_tools: Arc<Mutex<Vec<PendingTool>>>,
 }
@@ -264,8 +282,35 @@ impl ToolManager {
             format!("✅ Agent cloned successfully to: {}", target_dir)
         });
 
-        // Initialize with an empty AST
-        let global_ast = engine.compile("").map_err(|e| anyhow::anyhow!("Rhai init error: {}", e))?;
+        // Initialize with an empty AST (or load immediately? No, load_tools is called later)
+        // Actually, let's initialize it properly
+        let global_ast = Arc::new(RwLock::new(
+            engine.compile("").map_err(|e| anyhow::anyhow!("Rhai init error: {}", e))?
+        ));
+
+        // Register remove_tool
+        let tools_dir_clone = tools_dir.clone();
+        let global_ast_clone = global_ast.clone();
+        engine.register_fn("remove_tool", move |name: &str| -> String {
+            let path = tools_dir_clone.join(format!("{}.rhai", name));
+            if path.exists() {
+                if let Err(e) = fs::remove_file(&path) {
+                    return format!("Error deleting tool file: {}", e);
+                }
+                
+                // Reload AST
+                match load_all_tools(&tools_dir_clone) {
+                    Ok(new_ast) => {
+                        let mut ast_lock = global_ast_clone.write().unwrap();
+                        *ast_lock = new_ast;
+                        format!("Tool '{}' removed successfully", name)
+                    },
+                    Err(e) => format!("Tool removed from disk but error reloading AST: {}", e)
+                }
+            } else {
+                format!("Tool '{}' not found", name)
+            }
+        });
 
         // Register Pending Tool Management Functions
         
@@ -413,16 +458,9 @@ impl ToolManager {
     }
 
     pub fn load_tools(&mut self) -> Result<()> {
-        // Load all .rhai files from tools directory
-        for entry in fs::read_dir(&self.tools_dir)? {
-            let entry = entry?;
-            let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("rhai") {
-                let script = fs::read_to_string(&path)?;
-                let ast = self.engine.compile(&script).map_err(|e| anyhow::anyhow!("Rhai compile error in {:?}: {}", path, e))?;
-                self.global_ast += ast;
-            }
-        }
+        let new_ast = load_all_tools(&self.tools_dir)?;
+        let mut ast_lock = self.global_ast.write().unwrap();
+        *ast_lock = new_ast;
         Ok(())
     }
 
@@ -432,7 +470,7 @@ impl ToolManager {
         
         // Compile and merge immediately
         let ast = self.engine.compile(code).map_err(|e| anyhow::anyhow!("Rhai compile error: {}", e))?;
-        self.global_ast += ast;
+        *self.global_ast.write().unwrap() += ast;
         
         Ok(format!("Tool '{}' created successfully at {:?}", name, path))
     }
@@ -468,11 +506,7 @@ impl ToolManager {
         // If args is empty, call with ().
         // If args has 1 element, call with (arg,).
         
-        let args_tuple = if args.is_empty() {
-            rhai::Dynamic::from(())
-        } else {
-            rhai::Dynamic::from(args[0].clone())
-        };
+
 
         // Try to call with global_ast (for script tools)
         // We need to handle the tuple conversion carefully. 
@@ -480,10 +514,13 @@ impl ToolManager {
         // If we have 0 args, we pass ().
         // If we have 1 arg, we pass (arg,).
         
-        let result: Result<rhai::Dynamic, _> = if args.is_empty() {
-             self.engine.call_fn(&mut scope, &self.global_ast, name, ())
-        } else {
-             self.engine.call_fn(&mut scope, &self.global_ast, name, (args[0].clone(),))
+        let result: Result<rhai::Dynamic, _> = {
+            let ast = self.global_ast.read().unwrap();
+            if args.is_empty() {
+                 self.engine.call_fn(&mut scope, &*ast, name, ())
+            } else {
+                 self.engine.call_fn(&mut scope, &*ast, name, (args[0].clone(),))
+            }
         };
 
         match result {

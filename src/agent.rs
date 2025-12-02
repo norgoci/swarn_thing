@@ -1,6 +1,5 @@
 use anyhow::Result;
-use aws_sdk_bedrockruntime::types::{ContentBlock, ConversationRole, Message};
-use crate::llm::LlmClient;
+use crate::llm::{LlmClient, Message, Role};
 
 pub struct Agent {
     llm: LlmClient,
@@ -19,11 +18,10 @@ impl Agent {
 
     pub async fn chat(&mut self, user_input: &str) -> Result<String> {
         // Add user message to history
-        let user_msg = Message::builder()
-            .role(ConversationRole::User)
-            .content(ContentBlock::Text(user_input.to_string()))
-            .build()
-            .map_err(|e| anyhow::anyhow!("Failed to build user message: {}", e))?;
+        let user_msg = Message {
+            role: Role::User,
+            content: user_input.to_string(),
+        };
         
         self.history.push(user_msg);
 
@@ -31,11 +29,10 @@ impl Agent {
         let response_text = self.llm.chat(self.history.clone(), Some(self.system_prompt.clone())).await?;
 
         // Add assistant response to history
-        let assistant_msg = Message::builder()
-            .role(ConversationRole::Assistant)
-            .content(ContentBlock::Text(response_text.clone()))
-            .build()
-            .map_err(|e| anyhow::anyhow!("Failed to build assistant message: {}", e))?;
+        let assistant_msg = Message {
+            role: Role::Assistant,
+            content: response_text.clone(),
+        };
         
         self.history.push(assistant_msg);
 

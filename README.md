@@ -30,21 +30,21 @@ Traditional AI agents have fixed capabilities. This agent **evolves**. It's not 
 
 The agent is designed as a **semi-autonomous assistant** (Human-in-the-Loop). It is not a "set and forget" system that runs forever on its own; rather, it is a powerful force multiplier that acts as a collaborator.
 
-### The Partnership Model:
+### The Partnership Model
 
-1.  **You define the "What" (Strategy)**:
-    *   You provide the high-level goals (e.g., "Analyze this dataset," "Create a backup").
-    *   You act as the manager or director.
+1. **You define the "What" (Strategy)**:
+    - You provide the high-level goals (e.g., "Analyze this dataset," "Create a backup").
+    - You act as the manager or director.
 
-2.  **The Agent handles the "How" (Tactics)**:
-    *   The agent autonomously figures out the necessary steps to achieve your goal.
-    *   It writes its own code, compiles it, creates new tools, and executes them without needing you to write a single line of Rust or Rhai.
+2. **The Agent handles the "How" (Tactics)**:
+    - The agent autonomously figures out the necessary steps to achieve your goal.
+    - It writes its own code, compiles it, creates new tools, and executes them without needing you to write a single line of Rust or Rhai.
 
-3.  **The "Loop" (Oversight)**:
-    *   The agent pauses for your approval on critical or risky actions, such as:
-        *   Making network requests.
-        *   Installing tools received from other (potentially untrusted) agents.
-        *   Performing irreversible file operations.
+3. **The "Loop" (Oversight)**:
+    - The agent pauses for your approval on critical or risky actions, such as:
+      - Making network requests.
+      - Installing tools received from other (potentially untrusted) agents.
+      - Performing irreversible file operations.
 
 This design aims to give you the **speed and capability** of an autonomous AI (writing code, self-replicating) while keeping the **safety and control** firmly in your hands.
 
@@ -57,7 +57,7 @@ sequenceDiagram
     loop Execution Loop
         Agent->>Agent: Plan & Write Code
         Agent->>Agent: Compile Tool
-        
+
         alt Critical Action / Risk
             Agent->>User: Request Approval
             User-->>Agent: 2. Oversight ("Yes/No")
@@ -68,22 +68,25 @@ sequenceDiagram
     Agent->>User: Deliver Result
 ```
 
-### How it works:
+### How it works
+
 - **You provide the Goal**: "Analyze this data file."
 - **Agent handles the Execution**: It autonomously decides it needs a new tool, writes the code for that tool, compiles it, and executes it—all without you needing to write a single line of Rust or Rhai.
 - **Strategic Self-Replication**: The agent can autonomously decide to clone itself if the task requires it (e.g., "Create a backup before this risky operation" or "Deploy a worker to /tmp").
 - **You provide Oversight**: Critical network actions or installing tools from strangers require your approval.
 
 ### Example Scenario 1: Tool Creation
+
 1. **User**: "I need to know the top 3 words in `data.txt`."
 2. **Agent**: Generates, compiles, and runs a `word_count` tool.
 3. **Result**: "The top 3 words are..."
 
 ### Example Scenario 2: Autonomous Cloning
+
 1. **User**: "We are about to change the core system. Make sure we have a fallback."
 2. **Agent**: "Understood. I will create a backup clone first."
-   - *Action*: Executes `[TOOL: clone_agent(./backup_agent)]`
-   - *Result*: "Backup created at ./backup_agent. Now proceeding with changes..."
+   - _Action_: Executes `[TOOL: clone_agent(./backup_agent)]`
+   - _Result_: "Backup created at ./backup_agent. Now proceeding with changes..."
 
 This balance allows for rapid capability growth while preventing the agent from doing dangerous things (like deleting files or spamming APIs) without supervision.
 
@@ -100,6 +103,7 @@ This balance allows for rapid capability growth while preventing the agent from 
 
 - **`list_tools()`**: Query all available tools
 - **`inspect_tool(name)`**: Read the source code of any tool
+- **`remove_tool(name)`**: Permanently delete a tool from disk and memory
 - **Context Injection**: System prompt automatically includes available tools on startup
 
 ### 🛠️ Built-in Tools
@@ -124,15 +128,18 @@ This balance allows for rapid capability growth while preventing the agent from 
 - **Specialization**: Preserve agent state at specific evolution points
 
 #### How it works
+
 1. **Executable Copy**: The running binary copies itself to the target directory.
 2. **Tool Transfer**: The entire `tools/` directory (containing all learned skills) is recursively copied.
 3. **Config Preservation**: The `.env` file is copied to maintain API access and settings.
 
 #### Limitations
+
 > [!IMPORTANT]
-> **State Persistence**: The cloning process copies **persistent state** (tools, configuration) but **NOT in-memory state**. 
+> **State Persistence**: The cloning process copies **persistent state** (tools, configuration) but **NOT in-memory state**.
+>
 > - The cloned agent starts as a fresh instance with empty conversation history.
-> - It retains all *skills* (tools) but loses the current *context* (chat logs).
+> - It retains all _skills_ (tools) but loses the current _context_ (chat logs).
 
 ## Architecture
 
@@ -175,7 +182,7 @@ graph TB
 
 ## Tool Lifecycle
 
-````mermaid
+```mermaid
 sequenceDiagram
     participant User
     participant Agent
@@ -199,7 +206,7 @@ sequenceDiagram
     ToolManager->>Engine: call_fn("fibonacci", (10,))
     Engine-->>ToolManager: Result
     ToolManager-->>User: 55
-````
+```
 
 ## Tool Composition Example
 
@@ -239,7 +246,7 @@ graph LR
 1. **Clone or navigate to the project**:
 
    ```bash
-   cd rust-research-agent
+   cd swarm_thing
    ```
 
 2. **Configure environment variables** (optional):
@@ -267,6 +274,47 @@ graph LR
    - `anthropic.claude-3-opus-20240229-v1:0` - Claude 3 Opus (most powerful)
 
    > **Note:** If `MODEL_ID` is not set, the agent defaults to Claude 3 Sonnet.
+   
+   ### Configuration
+   
+   The agent can be configured via environment variables or a `.env` file.
+   
+   #### 1. AWS Bedrock (Default)
+   To use AWS Bedrock, set `LLM_PROVIDER=bedrock` (or leave it unset).
+   
+   ```bash
+   LLM_PROVIDER=bedrock
+   AWS_ACCESS_KEY_ID=...
+   AWS_SECRET_ACCESS_KEY=...
+   AWS_DEFAULT_REGION=us-east-1
+   MODEL_ID=anthropic.claude-3-sonnet-20240229-v1:0
+   ```
+   
+   #### 2. Local LLM (Ollama)
+   To use a local model via Ollama, set `LLM_PROVIDER=ollama`.
+   
+   ```bash
+   LLM_PROVIDER=ollama
+   MODEL_ID=llama3.1  # Or any model you have pulled in Ollama
+   OLLAMA_URL=http://localhost:11434/api/chat  # Optional, defaults to this URL
+   ```
+   
+   **Setting up Ollama (Linux/Mac):**
+   
+   1. **Install Ollama**:
+      ```bash
+      curl -fsSL https://ollama.com/install.sh | sh
+      ```
+   
+   2. **Start the Server**:
+      ```bash
+      ollama serve
+      ```
+   
+   3. **Download Llama 3.1** (in a new terminal):
+      ```bash
+      ollama pull llama3.1
+      ```
 
 3. **Build the project**:
 
@@ -283,11 +331,14 @@ graph LR
 5. **Expected startup output**:
 
    ```
-   Rust Swarn Thing Initializing...
+   Swarn Thing Initializing...
    Loaded 1 tools: magic_math
    Ready! Type 'exit' to quit.
    >
    ```
+
+> [!NOTE]
+> **Example Tools**: The `.rhai` scripts found in the `tools/` directory (such as `magic_math.rhai`, `square.rhai`, etc.) are provided as **examples** to demonstrate the agent's capabilities. They are not required for the core agent to function and can be modified or removed.
 
 ### Basic Usage
 
@@ -307,21 +358,23 @@ The agent can write new tools in Rhai scripting language.
 
 **Example:**
 
-````
+```sh
 > I need a tool that calculates the square of a number
 
-Agent: I'll create a square tool for you.
+: I'll create a square tool for you.
+```
+
 ```rhai
 // filename: square
 fn square(x) {
     let num = parse_int(x);
     return num * num;
 }
-````
+```
 
+```sh
 Creating tool: square
 Tool 'square' created successfully at "tools/square.rhai"
-
 ```
 
 **What happens:**
@@ -337,17 +390,16 @@ Tool 'square' created successfully at "tools/square.rhai"
 Execute any tool using the `[TOOL: name(args)]` syntax.
 
 **Example:**
-```
+```sh
 
 > [TOOL: square(7)]
 
 Executing tool: square
 Tool Output: 49
-
 ```
 
 **Built-in tools you can use:**
-```
+```sh
 
 > [TOOL: read_file(example.txt)]
 > [TOOL: write_file(output.txt, Hello World)]
@@ -363,10 +415,10 @@ Tool Output: 49
 Tools can call other tools, enabling complex behavior.
 
 **Example:**
-```
+```sh
 
 > Create a tool that squares a number then doubles it
-
+```
 Agent:
 
 ```rhai
@@ -377,11 +429,12 @@ fn square_and_double(x) {
 }
 ```
 
+```sh
 > [TOOL: square_and_double(5)]
 
 Tool Output: 50
 
-````
+```
 
 **Explanation:** `square_and_double` calls the previously created `square` tool internally.
 
@@ -401,11 +454,11 @@ flowchart LR
     style Agent fill:#e1f5ff
     style TM fill:#fff4e1
     style ToolsDir fill:#f0e1ff
-````
+```
 
 **Example:**
 
-```
+```sh
 > [TOOL: list_tools()]
 
 Executing tool: list_tools
@@ -414,7 +467,7 @@ Tool Output: magic_math, square, square_and_double
 
 **In conversation:**
 
-```
+```sh
 > What tools do you have?
 
 Agent: Let me check. [TOOL: list_tools()]
@@ -442,7 +495,7 @@ flowchart LR
 
 **Example:**
 
-```
+```sh
 > [TOOL: inspect_tool(square)]
 
 Executing tool: inspect_tool
@@ -455,7 +508,7 @@ fn square(x) {
 
 **Conversational use:**
 
-```
+```sh
 > How does the square tool work?
 
 Agent: Let me inspect it. [TOOL: inspect_tool(square)]
@@ -471,8 +524,9 @@ Overwrite existing tools with improved versions.
 
 **Example:**
 
-````
+```sh
 > Improve the square tool to handle negative numbers better
+```
 
 Agent:
 ```rhai
@@ -482,8 +536,9 @@ fn square(x) {
     let result = num * num;
     return result;  // Always positive
 }
-````
+```
 
+```sh
 > [TOOL: square(-5)]
 
 Tool Output: 25
@@ -494,12 +549,51 @@ Tool Output: 25
 
 ---
 
-### 7. Web Scraping
+### 7. Tool Removal
+
+Permanently delete tools from both disk and memory.
+
+**Example:**
+
+```sh
+> [TOOL: list_tools()]
+
+Tool Output: magic_math, square, square_and_double, test_tool
+
+> [TOOL: remove_tool(test_tool)]
+
+Tool Output: Tool 'test_tool' removed successfully
+
+> [TOOL: list_tools()]
+
+Tool Output: magic_math, square, square_and_double
+```
+
+**What happens:**
+1. The tool file (`tools/test_tool.rhai`) is deleted from disk
+2. The global AST is reloaded without the removed tool
+3. The tool is immediately unavailable for execution
+
+**Error handling:**
+
+```sh
+> [TOOL: remove_tool(nonexistent_tool)]
+
+Tool Output: Tool 'nonexistent_tool' not found
+```
+
+> [!WARNING]
+> **Permanent Deletion**: Tool removal is irreversible. Once removed, the tool cannot be recovered unless you have a backup or recreate it.
+
+---
+
+### 8. Web Scraping
+
 
 Extract text content from websites.
 
 **Example:**
-```
+```sh
 
 > [TOOL: scrape_url(https://example.com)]
 
@@ -516,12 +610,12 @@ examples in documents. You may use this domain in literature...
 
 ---
 
-### 8. File Operations
+### 9. File Operations
 
 Read and write files on the local system.
 
 **Example:**
-```
+```sh
 
 > [TOOL: write_file(notes.txt, Remember to test the agent)]
 
@@ -531,13 +625,13 @@ Tool Output: File written successfully
 
 Tool Output: Remember to test the agent
 
-````
+```
 
 **Security Note:** The agent has full filesystem access. Use with caution.
 
 ---
 
-### 9. Inter-Agent Communication
+### 10. Inter-Agent Communication
 
 Agents can communicate with each other via HTTP.
 
@@ -555,11 +649,11 @@ sequenceDiagram
     B-->>A: {"status":"ok","received":"Hello"}
 
     Note over A,B: Agents can now collaborate
-````
+```
 
 **Starting a server:**
 
-```
+```sh
 > [TOOL: start_server(8080)]
 
 🚀 Starting IPC server on port 8080
@@ -570,14 +664,14 @@ Tool Output: IPC server starting on port 8080
 
 _Terminal 1 - Agent B:_
 
-```
+```sh
 > [TOOL: start_server(8081)]
 🚀 IPC Server starting on http://127.0.0.1:8081
 ```
 
 _Terminal 2 - Agent A:_
 
-````
+```
 > Create a tool to send a greeting to Agent B
 
 Agent:
@@ -586,8 +680,9 @@ Agent:
 fn greet_agent_b(name) {
     return send_message("http://127.0.0.1:8081/message", "Hello from " + name);
 }
-````
+```
 
+```sh
 > [TOOL: greet_agent_b(Agent A)]
 
 📤 Sending message to <http://127.0.0.1:8081/message>: Hello from Agent A
@@ -596,7 +691,7 @@ Tool Output: Response: {"status":"ok","received":"Hello from Agent A"}
 ```
 
 *Terminal 1 - Agent B sees:*
-```
+```sh
 
 📨 Received message: Hello from Agent A
 
@@ -619,9 +714,10 @@ Agents can share tool knowledge by sending source code to each other.
 **Agent A shares a tool with Agent B:**
 
 *Agent A:*
-```
+```sh
 
 > Create a tool to share the square tool with Agent B
+```
 
 Agent:
 
@@ -668,7 +764,8 @@ Beyond sharing raw code, agents can explain tools to each other in natural langu
 
 *Terminal 2 - Agent A:*
 ````
-> Explain the square_and_double tool to Agent B at http://127.0.0.1:8081/message
+
+> Explain the square_and_double tool to Agent B at <http://127.0.0.1:8081/message>
 
 Agent A: Let me inspect the tool and create an explanation.
 
@@ -688,6 +785,7 @@ fn teach_tool(dummy) {
 
 📤 Sending explanation to Agent B...
 Tool Output: Response: {"status":"ok","received":"Tool: square_and_double..."}
+
 ````
 
 *Terminal 1 - Agent B receives:*
@@ -710,6 +808,7 @@ Best for: Quick mathematical transformations when you need both squaring and dou
 
 *Agent B:*
 ````
+
 > I received information about square_and_double. Can you create this tool for me?
 
 Agent B: Based on the explanation, I'll create the tool.
@@ -725,17 +824,20 @@ fn square_and_double(x) {
 Tool created successfully!
 
 > [TOOL: square_and_double(5)]
-Tool Output: 50
-````
+> Tool Output: 50
+
+```
 
 **Teaching Multiple Tools:**
 
 Agents can also send a catalog of their capabilities:
 
-````
+```
+
 > Send a list of all your tools with brief descriptions to Agent B
 
 Agent A:
+
 ```rhai
 // filename: send_catalog
 fn send_catalog(dummy) {
@@ -744,6 +846,7 @@ fn send_catalog(dummy) {
     return send_message("http://127.0.0.1:8081/message", catalog);
 }
 ```
+
 ````
 
 **Benefits of Tool Teaching:**
@@ -756,7 +859,7 @@ fn send_catalog(dummy) {
 
 ---
 
-### 10. Agent Self-Replication
+### 11. Agent Self-Replication
 
 Agents can create physical copies of themselves to new directories.
 
@@ -865,24 +968,27 @@ rust-research-agent/
     └── inspection_test.rs
 ```
 
-### 11. Automatic Tool Creation (Beta)
+### 12. Automatic Tool Creation (Beta)
 
 Agents can now share tools that are automatically queued for approval.
 
 **Workflow:**
 
 1. **Agent A shares a tool:**
+
    ```
    > [TOOL: share_tool(http://127.0.0.1:8081/message, square)]
    ```
 
 2. **Agent B receives and queues it:**
+
    ```
    📦 Received ToolShare: square (Safety: Safe)
    Tool 'square' received and queued for approval.
    ```
 
 3. **Agent B checks the queue:**
+
    ```
    > [TOOL: list_pending_tools()]
    Pending Tools:
@@ -890,12 +996,14 @@ Agents can now share tools that are automatically queued for approval.
    ```
 
 4. **Agent B approves the tool:**
+
    ```
    > [TOOL: approve_tool(square)]
    Tool 'square' approved and saved to disk. It will be available after reload.
    ```
 
 **Safety Levels:**
+
 - **Safe**: Pure computation
 - **LowRisk**: Reads data, sends messages
 - **MediumRisk**: Reads files, scrapes URLs

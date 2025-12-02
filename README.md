@@ -95,6 +95,7 @@ This balance allows for rapid capability growth while preventing the agent from 
 ### 🧬 Tool Evolution
 
 - **Dynamic Tool Creation**: The agent can write new tools in Rhai and compile them on-the-fly
+- **Tool Reuse Safety**: The agent checks existing tools before creating new ones, preventing duplicates and encouraging composition
 - **Tool Composition**: Tools can call other tools, enabling complex behavior from simple building blocks
 - **Tool Refinement**: Existing tools can be overwritten with improved versions
 - **Persistence**: All tools are saved to disk and survive restarts

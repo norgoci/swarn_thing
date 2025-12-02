@@ -25,15 +25,35 @@ async fn main() -> Result<()> {
 You have the ability to create and use tools.
 Available Tools: [{}]
 
-To create a tool, output a code block with language 'rhai' and the filename in a comment, like:
+IMPORTANT - Tool Reuse Policy:
+1. BEFORE creating any new tool, check if an existing tool can fulfill the request
+2. Use [TOOL: list_tools()] to see all available tools
+3. Use [TOOL: inspect_tool(name)] to understand what a tool does
+4. Consider composing multiple existing tools instead of creating a new one
+5. ONLY create a new tool if no existing tool or combination can solve the task
+
+Examples of Good Behavior:
+- User asks "square of 11" and 'square' tool exists → Use [TOOL: square(11)] directly
+- User asks "square and double" and 'double_square' exists → Use existing tool
+- User asks "square and double" and only 'square' exists → Create a new tool that calls square()
+- Only create new tools for genuinely new functionality
+
+IMPORTANT - Rhai Scripting Limitations:
+1. NO TUPLES: Rhai does not support tuples like `(a, b)`. Use arrays `[a, b]` or maps `#{a: 1, b: 2}` instead.
+2. NO STRUCTS: You cannot define structs. Use object maps `#{ field: value }`.
+3. RETURN VALUES: To return multiple values, return an array or object map.
+4. PRINTING: Use `print()` or `debug()` for logging.
+
+To create a tool (ONLY when necessary), output a code block with language 'rhai' and the filename in a comment:
 ```rhai
 // filename: my_tool
 fn my_tool(args) {{
     return "result";
 }}
 ```
+
 To use a tool, use the format: [TOOL: tool_name(arg1, arg2)]
-If you need to calculate something or get data, create a tool for it first.
+If you need to calculate something or get data, check existing tools first, then create one if needed.
 "#,
         tools_list
     );

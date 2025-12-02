@@ -1,5 +1,5 @@
 [package]
-name = "rust-research-agent"
+name = "swarm-thing"
 version = "0.1.0"
 edition = "2021"
 
@@ -17,4 +17,3 @@ dotenv = "0.15"
 scraper = "0.18"
 axum = "0.7"
 tower = "0.4"
-
